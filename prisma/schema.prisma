@@ -1,0 +1,59 @@
+// Data source
+datasource db {
+    provider = "postgresql"
+    url      = "postgres://postgres:12345@localhost:5432/notification-system"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id          String       @id @default(uuid())
+    userName    String       @unique
+    firstName   String
+    lastName    String
+    email       String       @unique
+    password    String
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    UserProfile UserProfile?
+}
+
+model UserProfile {
+    id       String     @id @default(uuid())
+    Post     Post[]
+    Comments Comments[]
+    Likes    Likes[]
+    user     User       @relation(fields: [id], references: [id])
+}
+
+model Post {
+    id          String      @id @default(uuid())
+    title       String
+    description String
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    image       String?
+    comments    Comments[]
+    user        UserProfile @relation(fields: [userId], references: [id])
+    userId      String
+    Likes       Likes[]
+}
+
+model Comments {
+    id     Int         @id @default(autoincrement())
+    text   String
+    post   Post        @relation(fields: [postId], references: [id])
+    postId String
+    user   UserProfile @relation(fields: [userId], references: [id])
+    userId String
+}
+
+model Likes {
+    id     Int         @id @default(autoincrement())
+    post   Post        @relation(fields: [postId], references: [id])
+    postId String
+    user   UserProfile @relation(fields: [userId], references: [id])
+    userId String
+}
