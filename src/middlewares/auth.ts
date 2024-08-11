@@ -11,30 +11,45 @@ const authMiddleware = async (
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers['authorization'];
+  try {
+    const authHeader = req.headers['authorization'];
 
-  if (!authHeader)
-    return res
-      .status(401)
-      .send({success: false, message: 'auth token is missing'});
+    if (!authHeader) {
+      return res
+        .status(401)
+        .send({success: false, message: 'auth token is required'});
+    }
 
-  const token = authHeader.split('Bearer ').at(1);
+    const token = authHeader.split('Bearer ').at(1);
 
-  if (!token)
-    return res.status(401).send({success: false, message: 'invalid token'});
+    if (!token) {
+      return res.status(401).send({success: false, message: 'invalid token'});
+    }
 
-  const decodedToken = authService.verifyToken(token);
+    const decodedToken = authService.verifyToken(token);
 
-  if (!decodedToken)
-    return res.status(401).send({success: false, message: 'invalid token'});
+    if (!decodedToken) {
+      return res.status(401).send({success: false, message: 'invalid token'});
+    }
 
-  const email = (decodedToken as User).email;
+    const userId = (decodedToken as User).id;
 
-  const user = await userService.getUserByEmail(email);
+    if (!userId) {
+      return res.status(401).send({success: false, message: 'invalid token'});
+    }
 
-  req.user = user!;
+    const user = await userService.getUser(userId);
 
-  next();
+    req.user = user!;
+
+    next();
+  } catch (error) {
+    console.log('Error occured while authenticating user', error);
+    res.status(500).send({
+      success: false,
+      message: (error as Error)?.message ?? 'internal server errror',
+    });
+  }
 };
 
 export default authMiddleware;

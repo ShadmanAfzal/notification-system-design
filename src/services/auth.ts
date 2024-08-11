@@ -1,12 +1,15 @@
-import {CreateUserType} from '../types/createUser';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import {z} from 'zod';
+import {createUserSchema} from '../validators/user';
 
 const JWT_SIGN_KEY = process.env.JWT_SIGN_KEY!;
 const PASSWORD_SALT = 10;
 
 class AuthService {
-  generateToken(user: Omit<CreateUserType, 'password'>) {
+  generateToken(
+    user: Omit<z.infer<typeof createUserSchema> & {id: string}, 'password'>
+  ) {
     const token = jwt.sign(user, JWT_SIGN_KEY, {
       expiresIn: '1h',
     });
@@ -18,7 +21,6 @@ class AuthService {
       const decodedToken = jwt.verify(token, JWT_SIGN_KEY);
       return decodedToken;
     } catch (error) {
-      console.log('Error occured while decoding JWT');
       return null;
     }
   }

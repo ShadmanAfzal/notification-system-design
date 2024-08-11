@@ -1,5 +1,6 @@
 import {PrismaClient} from '@prisma/client';
-import {CreateUserType} from '../types/createUser';
+import {createUserSchema} from '../validators/user';
+import {z} from 'zod';
 
 class UserService {
   client: PrismaClient;
@@ -16,7 +17,7 @@ class UserService {
     return user;
   }
 
-  async createUser(user: CreateUserType) {
+  async createUser(user: z.infer<typeof createUserSchema>) {
     const result = await this.client.user.create({
       data: user,
     });
@@ -40,6 +41,22 @@ class UserService {
     });
 
     return user;
+  }
+
+  async userAlreadyExists(email: string, userName: string) {
+    const count = await this.client.user.count({
+      where: {
+        OR: [
+          {
+            email,
+          },
+          {
+            userName,
+          },
+        ],
+      },
+    });
+    return count > 0;
   }
 }
 

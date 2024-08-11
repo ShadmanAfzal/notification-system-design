@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./dist/index.js",
     "dev": "node --watch ./dist/index.js",
-    "compile:watch": "rimraf dist &&  tsc -w",
+    "compile:watch": "tsc -w",
     "compile": "rimraf dist && tsc",
     "lint": "gts lint",
     "clean": "gts clean",
@@ -35,6 +35,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "prisma": "^5.18.0"
+    "prisma": "^5.18.0",
+    "zod": "^3.23.8"
   }
 }
