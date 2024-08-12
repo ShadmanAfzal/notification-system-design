@@ -12,4 +12,18 @@ postRouter.post('/', authMiddleware, controller.createPost);
 
 postRouter.put('/:id', authMiddleware, controller.updatePost);
 
+postRouter.delete('/:id', authMiddleware, controller.deletePost);
+
+postRouter.get('/:id/likes', authMiddleware, controller.getLikesByPostId);
+
+postRouter.get('/:id/comments', authMiddleware, controller.getCommentsByPostId);
+
+postRouter.post('/like', authMiddleware, controller.toggleLike);
+
+postRouter.post('/comment', authMiddleware, controller.postComment);
+
+postRouter.get('/comment/:id', authMiddleware, controller.getCommentsById);
+
+postRouter.delete('/comment/:id', authMiddleware, controller.deleteComments);
+
 export default postRouter;

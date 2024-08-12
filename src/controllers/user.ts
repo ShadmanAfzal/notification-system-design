@@ -50,11 +50,8 @@ const deleteUser = async (req: Request, res: Response) => {
   return res.send({success: true, message: 'user deleted successfully'});
 };
 
-const updateUser = (req: Request, res: Response) => {};
-
 export default {
   getUser,
   getLoginUser,
-  updateUser,
   deleteUser,
 };

@@ -16,7 +16,9 @@ export const createPostSchema = z.object({
   private: z.boolean().optional(),
 });
 
-export const createPostValidator = async (postBody: any) => {
+export const createPostValidator = async (
+  postBody: z.infer<typeof createPostSchema>
+) => {
   const result = await createPostSchema.safeParseAsync(postBody);
 
   const errorMessage = result.error?.errors.at(0)?.message;

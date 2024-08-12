@@ -6,10 +6,8 @@ const userRouter = Router();
 
 userRouter.get('/me', authMiddleware, controller.getLoginUser);
 
-userRouter.get('/:id', controller.getUser);
+userRouter.get('/:id', authMiddleware, controller.getUser);
 
-userRouter.put('/', controller.updateUser);
-
-userRouter.delete('/:id', controller.deleteUser);
+userRouter.delete('/:id', authMiddleware, controller.deleteUser);
 
 export default userRouter;

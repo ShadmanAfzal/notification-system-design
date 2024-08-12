@@ -13,7 +13,9 @@ export const createUserSchema = z.object({
   userName: z.string({message: 'userName  field is required'}),
 });
 
-export const createUserValidator = async (body: any) => {
+export const createUserValidator = async (
+  body: z.infer<typeof createUserSchema>
+) => {
   const result = await createUserSchema.safeParseAsync(body);
 
   const errorMessage = result.error?.errors.at(0)?.message;
