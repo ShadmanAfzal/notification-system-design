@@ -2,8 +2,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import {z} from 'zod';
 import {createUserSchema} from '../validators/user';
+import env from '../utils/env';
 
-const JWT_SIGN_KEY = process.env.JWT_SIGN_KEY!;
+const JWT_SIGN_KEY = env.JWT_SIGN_KEY!;
 const PASSWORD_SALT = 10;
 
 class AuthService {

@@ -1,5 +1,6 @@
 import {Request, Response} from 'express';
 import UserService from '../services/user';
+import logger from '../utils/logger';
 
 const userService = new UserService();
 
@@ -17,7 +18,7 @@ const getUser = async (req: Request, res: Response) => {
 
     return res.send({success: true, message: user});
   } catch (error) {
-    console.log('Error occured while getting user details', error);
+    logger.error('Error occured while getting user details', error);
     res.status(500).send({
       success: false,
       message: (error as Error)?.message ?? 'internal server errror',
@@ -33,7 +34,7 @@ const getLoginUser = async (req: Request, res: Response) => {
 
     return res.send({success: true, message: user});
   } catch (error) {
-    console.log('Error occured while getting user details', error);
+    logger.error('Error occured while getting user details', error);
     res.status(500).send({
       success: false,
       message: (error as Error)?.message ?? 'internal server errror',
@@ -45,7 +46,7 @@ const deleteUser = async (req: Request, res: Response) => {
   try {
     await userService.deleteUserBy(req.params.id);
   } catch (error) {
-    console.log('Error occured while deleting user', error);
+    logger.error('Error occured while deleting user', error);
   }
   return res.send({success: true, message: 'user deleted successfully'});
 };

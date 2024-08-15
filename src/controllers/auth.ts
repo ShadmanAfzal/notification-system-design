@@ -1,29 +1,26 @@
-import {Request, Response} from 'express';
+import {NextFunction, Request, Response} from 'express';
 import AuthService from '../services/auth';
 import UserService from '../services/user';
 import {createUserValidator} from '../validators/user';
+import {BadRequestError, ConflictError, NotFoundError} from '../utils/errors';
 
 const authService = new AuthService();
 const userService = new UserService();
 
-const loginUser = async (req: Request, res: Response) => {
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {email, password} = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'email and password are required fields',
-      });
+      throw new BadRequestError('email and password are required fields');
     }
 
     const user = await userService.getUserByEmail(email);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: `no user found with email Id ${email} and password ${password}`,
-      });
+      throw new NotFoundError(
+        `no user found with email Id ${email} and password ${password}`
+      );
     }
 
     const checkPassword = await authService.validatePassword(
@@ -32,10 +29,9 @@ const loginUser = async (req: Request, res: Response) => {
     );
 
     if (!checkPassword) {
-      return res.status(404).json({
-        success: false,
-        message: `no user found with email Id ${email} and password ${password}`,
-      });
+      throw new NotFoundError(
+        `no user found with email Id ${email} and password ${password}`
+      );
     }
 
     const token = authService.generateToken({
@@ -52,22 +48,21 @@ const loginUser = async (req: Request, res: Response) => {
       token,
     });
   } catch (error) {
-    console.log('Error occured while login user', error);
-    res.status(500).send({
-      success: false,
-      message: (error as Error)?.message ?? 'internal server errror',
-    });
+    next(error);
   }
 };
 
-const registerUser = async (req: Request, res: Response) => {
+const registerUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const user = req.body;
 
     const validationErrors = await createUserValidator(user);
 
-    if (validationErrors)
-      return res.status(400).send({success: false, message: validationErrors});
+    if (validationErrors) throw new BadRequestError(validationErrors);
 
     const exists = await userService.userAlreadyExists(
       user.email,
@@ -75,10 +70,9 @@ const registerUser = async (req: Request, res: Response) => {
     );
 
     if (exists) {
-      return res.status(409).send({
-        success: false,
-        message: 'user already exists with same email or userName',
-      });
+      throw new ConflictError(
+        'user already exists with same email or userName'
+      );
     }
 
     user.password = await authService.hashPassword(user.password);
@@ -87,11 +81,7 @@ const registerUser = async (req: Request, res: Response) => {
 
     return res.send({success: true, message: 'user registered sucessfully'});
   } catch (error) {
-    console.log('Error occured while registering user', error);
-    res.status(500).send({
-      success: false,
-      message: (error as Error)?.message ?? 'internal server errror',
-    });
+    next(error);
   }
 };
 

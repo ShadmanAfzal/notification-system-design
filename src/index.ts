@@ -3,8 +3,11 @@ import userRouter from './routers/user';
 import authRouter from './routers/auth';
 import postRouter from './routers/post';
 import morgan from 'morgan';
+import env from './utils/env';
+import logger from './utils/logger';
+import errorHandler from './middlewares/errors';
 
-const PORT = process.env.PORT ?? 5000;
+const PORT = env.PORT;
 
 const app = express();
 
@@ -20,8 +23,10 @@ app.use('/api/auth', authRouter);
 
 app.use('/api/post', postRouter);
 
-app.get('*', (req, res) =>
-  res.status(404).send({success: true, message: 'resource not found'})
+app.use(errorHandler);
+
+app.use((req, res) =>
+  res.status(404).send({success: false, message: 'resource not found'})
 );
 
-app.listen(PORT, () => console.log('Server started at PORT %s', PORT));
+app.listen(PORT, () => logger.info(`Server started at PORT ${PORT}`));

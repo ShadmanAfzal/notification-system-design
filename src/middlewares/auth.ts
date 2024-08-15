@@ -2,6 +2,7 @@ import {Request, Response, NextFunction} from 'express';
 import AuthService from '../services/auth';
 import {User} from '@prisma/client';
 import UserService from '../services/user';
+import {BadRequestError} from '../utils/errors';
 
 const authService = new AuthService();
 const userService = new UserService();
@@ -22,21 +23,15 @@ const authMiddleware = async (
 
     const token = authHeader.split('Bearer ').at(1);
 
-    if (!token) {
-      return res.status(401).send({success: false, message: 'invalid token'});
-    }
+    if (!token) throw new BadRequestError('invalid token');
 
     const decodedToken = authService.verifyToken(token);
 
-    if (!decodedToken) {
-      return res.status(401).send({success: false, message: 'invalid token'});
-    }
+    if (!decodedToken) throw new BadRequestError('invalid token');
 
     const userId = (decodedToken as User).id;
 
-    if (!userId) {
-      return res.status(401).send({success: false, message: 'invalid token'});
-    }
+    if (!userId) throw new BadRequestError('invalid token');
 
     const user = await userService.getUser(userId);
 
@@ -44,11 +39,7 @@ const authMiddleware = async (
 
     next();
   } catch (error) {
-    console.log('Error occured while authenticating user', error);
-    res.status(500).send({
-      success: false,
-      message: (error as Error)?.message ?? 'internal server errror',
-    });
+    next(error);
   }
 };
 
