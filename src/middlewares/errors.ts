@@ -16,7 +16,7 @@ const errorHandler = (
     statusCode = error.statusCode;
   }
   logger.error(error);
-  res.status(statusCode).send({success: false, error: message});
+  res.status(statusCode).send({error: message});
 };
 
 export default errorHandler;

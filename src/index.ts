@@ -25,8 +25,6 @@ app.use('/api/post', postRouter);
 
 app.use(errorHandler);
 
-app.use((req, res) =>
-  res.status(404).send({success: false, message: 'resource not found'})
-);
+app.use((req, res) => res.status(404).send({error: 'resource not found'}));
 
 app.listen(PORT, () => logger.info(`Server started at PORT ${PORT}`));

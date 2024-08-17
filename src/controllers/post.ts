@@ -8,8 +8,11 @@ import {
   NotFoundError,
   UnAuthorizedError,
 } from '../utils/errors';
+import env from '../utils/env';
+import NotificationService from '../services/notification';
 
 const postService = new PostService();
+const notificationService = new NotificationService();
 
 const createPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -20,7 +23,6 @@ const createPost = async (req: Request, res: Response, next: NextFunction) => {
     const createdPost = await postService.createPost(req.body, req.user.id);
 
     return res.send({
-      success: true,
       message: 'post created successfully',
       post: createdPost,
     });
@@ -29,9 +31,46 @@ const createPost = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getPosts = async (req: Request, res: Response) => {
-  const posts = await postService.getPosts();
-  return res.send({success: true, count: posts.length, posts});
+const getPosts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const item_per_page = Number(env.POST_ITEM_PER_PAGE);
+
+    const currentPage = Number(req.query['page'] ?? 1);
+
+    if (Number.isNaN(currentPage))
+      throw new BadRequestError('page query parameter is invalid');
+
+    if (currentPage < 1)
+      throw new BadRequestError('page query parameter is invalid');
+
+    const [totalPosts, posts] = await postService.getPosts(
+      currentPage - 1,
+      item_per_page
+    );
+
+    return res.send({
+      totalPage: Math.ceil(totalPosts / item_per_page),
+      currentPage,
+      count: posts.length,
+      posts: posts.map(post => {
+        return {
+          id: post.id,
+          title: post.title,
+          description: post.description,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          image: post.image,
+          userId: post.userId,
+          stats: {
+            likes: post._count.Likes,
+            comments: post._count.comments,
+          },
+        };
+      }),
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getPostById = async (req: Request, res: Response, next: NextFunction) => {
@@ -46,14 +85,19 @@ const getPostById = async (req: Request, res: Response, next: NextFunction) => {
       throw new UnAuthorizedError('unauthorized');
     }
 
-    const commentsCount = await postService.getCommentsCount(postId);
-    const likesCount = await postService.getLikesCount(postId);
-
     return res.send({
-      success: true,
-      post,
-      likes: likesCount,
-      comments: commentsCount,
+      id: post.id,
+      title: post.title,
+      description: post.description,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      image: post.image,
+      userId: post.userId,
+      private: post.private,
+      stats: {
+        likes: post._count.Likes,
+        comments: post._count.comments,
+      },
     });
   } catch (error) {
     next(error);
@@ -77,8 +121,7 @@ const updatePost = async (req: Request, res: Response, next: NextFunction) => {
     const updatedPost = await postService.updatePost(req.body, postId);
 
     return res.send({
-      success: true,
-      message: 'post created successfully',
+      message: 'post updated successfully',
       post: updatedPost,
     });
   } catch (error) {
@@ -98,7 +141,7 @@ const deletePost = async (req: Request, res: Response, next: NextFunction) => {
 
     await postService.deletePost(postId);
 
-    return res.send({success: true});
+    return res.send({message: 'post deleted successfully'});
   } catch (error) {
     next(error);
   }
@@ -108,21 +151,25 @@ const toggleLike = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const postId = req.body.postId;
 
-    if (!postId) {
-      return res
-        .status(404)
-        .send({success: false, message: 'postId is required'});
-    }
+    if (!postId) throw new BadRequestError('postId is required');
 
     const post = await postService.getPostById(postId);
 
-    if (post?.userId !== req.user.id) {
+    if (!post) throw new NotFoundError('post does not exist');
+
+    if (post?.private && post?.userId !== req.user.id) {
       throw new UnAuthorizedError('unauthorized');
     }
 
-    await postService.toggleLike(postId, req.user.id);
+    const isLiked = await postService.toggleLike(postId, req.user.id);
 
-    return res.send({success: true});
+    notificationService.sendNotification({
+      senderId: req.user.id,
+      receiverId: post.userId,
+      type: isLiked ? 'LIKE' : 'UNLIKE',
+    });
+
+    return res.send({isLiked});
   } catch (error) {
     next(error);
   }
@@ -136,9 +183,9 @@ const getCommentsById = async (
   try {
     const commentId = req.params.id;
 
-    const comments = await postService.getCommentById(+commentId);
+    const comment = await postService.getCommentById(+commentId);
 
-    return res.send({success: true, comments});
+    return res.send(comment);
   } catch (error) {
     next(error);
   }
@@ -150,9 +197,19 @@ const postComment = async (req: Request, res: Response, next: NextFunction) => {
 
     if (validationErrors) throw new BadRequestError(validationErrors);
 
+    const post = await postService.getPostById(req.body.postId);
+
+    if (!post) throw new NotFoundError('post does not exist');
+
     const comment = await postService.postComment(req.body, req.user.id);
 
-    return res.send({success: true, comment});
+    notificationService.sendNotification({
+      senderId: req.user.id,
+      receiverId: post?.userId,
+      type: 'COMMENT',
+    });
+
+    return res.send({message: 'comment posted successfully', comment});
   } catch (error) {
     next(error);
   }
@@ -169,10 +226,10 @@ const deleteComments = async (req: Request, res: Response) => {
     }
 
     await postService.deleteCommentById(+commentId);
-    return res.send({success: true});
+    return res.send({message: 'comment deleted successfully'});
   } catch (error) {
     logger.error(error);
-    return res.send({success: true});
+    return res.send({message: 'comment deleted successfully'});
   }
 };
 
@@ -184,7 +241,7 @@ const getCommentsByPostId = async (
   try {
     const postId = req.params.id;
     const comments = await postService.getComments(postId);
-    return res.send({success: true, count: comments.length, comments});
+    return res.send({count: comments.length, comments});
   } catch (error) {
     next(error);
   }
@@ -198,7 +255,7 @@ const getLikesByPostId = async (
   try {
     const postId = req.params.id;
     const likes = await postService.getLikes(postId);
-    return res.send({success: true, count: likes.length, comments: likes});
+    return res.send({count: likes.length, likes});
   } catch (error) {
     next(error);
   }

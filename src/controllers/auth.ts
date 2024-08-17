@@ -43,7 +43,6 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     return res.send({
-      success: true,
       message: 'user logged in successfully',
       token,
     });
@@ -79,7 +78,7 @@ const registerUser = async (
 
     await userService.createUser(user);
 
-    return res.send({success: true, message: 'user registered sucessfully'});
+    return res.send({message: 'user registered sucessfully'});
   } catch (error) {
     next(error);
   }

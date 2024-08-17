@@ -2,7 +2,7 @@ import {Request, Response, NextFunction} from 'express';
 import AuthService from '../services/auth';
 import {User} from '@prisma/client';
 import UserService from '../services/user';
-import {BadRequestError} from '../utils/errors';
+import {BadRequestError, UnAuthorizedError} from '../utils/errors';
 
 const authService = new AuthService();
 const userService = new UserService();
@@ -15,11 +15,7 @@ const authMiddleware = async (
   try {
     const authHeader = req.headers['authorization'];
 
-    if (!authHeader) {
-      return res
-        .status(401)
-        .send({success: false, message: 'auth token is required'});
-    }
+    if (!authHeader) throw new UnAuthorizedError('auth token is required');
 
     const token = authHeader.split('Bearer ').at(1);
 

@@ -3,6 +3,12 @@ import {createPostSchema} from '../validators/post';
 import {z} from 'zod';
 import {createCommentSchema} from '../validators/comment';
 
+type GetPostsOption = {
+  includeLikes?: boolean;
+  includeComments?: boolean;
+  includeUser?: boolean;
+};
+
 class PostService {
   client: PrismaClient;
   constructor() {
@@ -23,30 +29,46 @@ class PostService {
     return result;
   }
 
-  async getPostById(
-    id: string,
-    includeLikes = false,
-    includeComments = false,
-    includeUser = false
-  ) {
+  async getPostById(id: string, options?: GetPostsOption) {
     return await this.client.post.findFirst({
       where: {
         id,
       },
       include: {
-        Likes: includeLikes,
-        comments: includeComments,
-        user: includeUser,
+        _count: {
+          select: {
+            comments: true,
+            Likes: true,
+          },
+        },
+        Likes: options?.includeLikes ?? false,
+        comments: options?.includeComments ?? false,
+        user: options?.includeUser ?? false,
       },
     });
   }
 
-  async getPosts() {
-    return await this.client.post.findMany({
-      where: {
-        private: false,
-      },
-    });
+  async getPosts(currentPage: number, item_per_page = 5) {
+    return await this.client.$transaction([
+      this.client.post.count({
+        where: {
+          private: false,
+        },
+      }),
+      this.client.post.findMany({
+        include: {
+          _count: true,
+        },
+        where: {
+          private: false,
+        },
+        skip: currentPage * item_per_page,
+        take: item_per_page,
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      }),
+    ]);
   }
 
   async getPostsByUser(userId: string) {
@@ -102,27 +124,29 @@ class PostService {
   }
 
   async toggleLike(postId: string, userId: string) {
-    const post = await this.getPostById(postId, true);
+    const post = await this.getPostById(postId, {includeLikes: true});
 
     if (!post) throw new Error('Post not found');
 
     const isLiked = post.Likes.some(like => like.userId === userId);
 
     if (isLiked) {
-      return await this.client.likes.deleteMany({
+      await this.client.likes.deleteMany({
         where: {
           postId: postId,
           userId: userId,
         },
       });
+      return false;
     }
 
-    return await this.client.likes.create({
+    await this.client.likes.create({
       data: {
         postId: postId,
         userId: userId,
       },
     });
+    return true;
   }
 
   async getLikesCount(postId: string) {
