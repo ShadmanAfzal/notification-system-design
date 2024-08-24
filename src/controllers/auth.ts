@@ -15,32 +15,13 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
       throw new BadRequestError('email and password are required fields');
     }
 
-    const user = await userService.getUserByEmail(email);
+    const token = await userService.validateUser(email, password);
 
-    if (!user) {
+    if (!token) {
       throw new NotFoundError(
         `no user found with email Id ${email} and password ${password}`
       );
     }
-
-    const checkPassword = await authService.validatePassword(
-      user.password,
-      password
-    );
-
-    if (!checkPassword) {
-      throw new NotFoundError(
-        `no user found with email Id ${email} and password ${password}`
-      );
-    }
-
-    const token = authService.generateToken({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      userName: user.userName,
-    });
 
     return res.send({
       message: 'user logged in successfully',

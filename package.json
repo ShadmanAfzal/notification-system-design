@@ -11,7 +11,7 @@
     "lint": "gts lint",
     "clean": "gts clean",
     "fix": "gts fix",
-    "prepare": "npm run compile",
+    "prepare": "husky",
     "pretest": "npm run compile",
     "posttest": "npm run lint",
     "migrate": "npx prisma migrate dev"
@@ -27,6 +27,7 @@
     "@types/node": "20.12.7",
     "@types/typescript": "^2.0.0",
     "gts": "^5.3.1",
+    "husky": "^9.1.5",
     "rimraf": "^6.0.1",
     "typescript": "^5.4.3"
   },

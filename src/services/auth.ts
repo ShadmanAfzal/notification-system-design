@@ -1,16 +1,13 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import {z} from 'zod';
-import {createUserSchema} from '../validators/user';
 import env from '../utils/env';
+import {LoggedInUser} from 'types';
 
 const JWT_SIGN_KEY = env.JWT_SIGN_KEY!;
 const PASSWORD_SALT = 10;
 
 class AuthService {
-  generateToken(
-    user: Omit<z.infer<typeof createUserSchema> & {id: string}, 'password'>
-  ) {
+  generateToken(user: LoggedInUser) {
     const token = jwt.sign(user, JWT_SIGN_KEY, {
       expiresIn: '1h',
     });
